@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wayfinder | Trip planner</title>
+  <style>
+    :root {
+      --ink: #18252b;
+      --muted: #66777b;
+      --paper: #f7f4ec;
+      --panel: #fffdf8;
+      --line: #d9ddd3;
+      --accent: #df6548;
+      --accent-dark: #a94331;
+      --user: #e7f0e8;
+      --shadow: 0 24px 70px rgba(38, 55, 48, .12);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background: radial-gradient(circle at 12% 8%, #f2dfb9 0 13%, transparent 30%),
+                  radial-gradient(circle at 88% 95%, #c8ddd0 0 14%, transparent 32%), var(--paper);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+    .shell { width: min(920px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0 32px; }
+    header { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 22px; }
+    .eyebrow { margin: 0 0 10px; color: var(--accent-dark); font: 700 11px/1.2 Arial, sans-serif; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(2.3rem, 6vw, 4.5rem); line-height: .95; font-weight: 400; letter-spacing: -.04em; }
+    .intro { max-width: 260px; margin: 0 0 3px; color: var(--muted); font: 14px/1.5 Arial, sans-serif; }
+    .chat-panel { display: flex; flex-direction: column; min-height: min(690px, calc(100vh - 180px)); overflow: hidden; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); }
+    .status { display: flex; align-items: center; gap: 9px; padding: 14px 20px; border-bottom: 1px solid var(--line); color: var(--muted); font: 12px Arial, sans-serif; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #5b9b72; }
+    #messages { display: flex; flex: 1; flex-direction: column; gap: 18px; padding: 28px clamp(18px, 5vw, 56px); overflow-y: auto; }
+    .message { max-width: min(680px, 88%); padding: 15px 18px; border-radius: 3px 16px 16px 16px; font-size: 17px; line-height: 1.5; white-space: pre-wrap; animation: arrive .3s ease both; }
+    .message.assistant { align-self: flex-start; background: #f0eee6; }
+    .message.user { align-self: flex-end; border-radius: 16px 3px 16px 16px; background: var(--user); }
+    .message-label { display: block; margin-bottom: 6px; color: var(--muted); font: 700 10px Arial, sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+    form { display: flex; gap: 12px; padding: 18px; border-top: 1px solid var(--line); background: #fbfaf5; }
+    textarea { flex: 1; min-height: 52px; max-height: 150px; padding: 15px 16px; resize: vertical; border: 1px solid #cbd2c9; border-radius: 3px; color: var(--ink); background: white; font: 16px/1.35 Arial, sans-serif; }
+    textarea:focus { outline: 2px solid rgba(223, 101, 72, .35); border-color: var(--accent); }
+    button { align-self: stretch; padding: 0 23px; border: 0; border-radius: 3px; color: white; background: var(--accent); cursor: pointer; font: 700 14px Arial, sans-serif; }
+    button:hover { background: var(--accent-dark); }
+    button:disabled { cursor: wait; opacity: .55; }
+    .disclaimer { margin: 13px 3px 0; color: var(--muted); font: 11px/1.4 Arial, sans-serif; }
+    .thinking { color: var(--muted); font-style: italic; }
+    @keyframes arrive { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 600px) { .shell { width: min(100% - 20px, 920px); padding-top: 28px; } header { display: block; } .intro { margin-top: 14px; } .chat-panel { min-height: calc(100vh - 205px); } form { padding: 12px; } button { padding: 0 16px; } .message { max-width: 94%; font-size: 16px; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div><p class="eyebrow">Personal route studio</p><h1>Find your<br>way there.</h1></div>
+      <p class="intro">A practical travel companion for thoughtful itineraries, clever connections, and days that feel like yours.</p>
+    </header>
+    <section class="chat-panel" aria-label="Trip planning chat">
+      <div class="status"><span class="status-dot" aria-hidden="true"></span><span>Wayfinder is ready</span></div>
+      <div id="messages" aria-live="polite">
+        <div class="message assistant"><span class="message-label">Wayfinder</span>Tell me where you are dreaming of going, when you have time, and what makes a trip feel worthwhile to you.</div>
+      </div>
+      <form id="chat-form">
+        <textarea id="message-input" rows="2" placeholder="Ask about a destination, route, or itinerary..." aria-label="Your message" required></textarea>
+        <button id="send-button" type="submit">Send</button>
+      </form>
+    </section>
+    <p class="disclaimer">Travel details can change. Verify prices, schedules, entry requirements, and local guidance before booking.</p>
+  </main>
+  <script>
+    const form = document.querySelector('#chat-form');
+    const input = document.querySelector('#message-input');
+    const messagesEl = document.querySelector('#messages');
+    const sendButton = document.querySelector('#send-button');
+    const history = [];
+
+    function addMessage(role, content, extraClass = '') {
+      const bubble = document.createElement('div');
+      bubble.className = `message ${role} ${extraClass}`;
+      const label = document.createElement('span');
+      label.className = 'message-label';
+      label.textContent = role === 'user' ? 'You' : 'Wayfinder';
+      bubble.append(label, document.createTextNode(content));
+      messagesEl.appendChild(bubble);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      return bubble;
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const content = input.value.trim();
+      if (!content || sendButton.disabled) return;
+      history.push({ role: 'user', content });
+      addMessage('user', content);
+      input.value = '';
+      sendButton.disabled = true;
+      const thinking = addMessage('assistant', 'Thinking...', 'thinking');
+      try {
+        const response = await fetch('/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: history }) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || 'Something went wrong.');
+        thinking.remove();
+        history.push({ role: 'assistant', content: data.reply });
+        addMessage('assistant', data.reply);
+      } catch (error) {
+        thinking.textContent = error.message;
+        thinking.classList.remove('thinking');
+      } finally { sendButton.disabled = false; input.focus(); }
+    });
+  </script>
+</body>
+</html>
