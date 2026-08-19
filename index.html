@@ -98,10 +98,10 @@
       sendButton.disabled = true;
       const thinking = addMessage('assistant', 'Thinking...', 'thinking');
       try {
-        const response = await fetch('/.netlify/functions/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: history }) });
+        const response = await fetch('/.netlify/functions/chat?v=20260819', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ messages: history }) });
         const responseText = await response.text();
         if (response.status === 401 || response.status === 403) {
-          throw new Error('Netlify is blocking the chat function. Set the site to public or allow function access, then redeploy.');
+          throw new Error(`Netlify blocked the chat function (HTTP ${response.status}). Set Visitor access to public, then redeploy.`);
         }
         let data;
         try { data = JSON.parse(responseText); } catch { throw new Error('The chat service returned an invalid response. Check the Netlify function deployment.'); }
