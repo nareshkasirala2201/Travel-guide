@@ -26,9 +26,9 @@ def handler(event, context):
     if event.get("httpMethod") != "POST":
         return response(405, {"detail": "Method not allowed."})
 
-    endpoint = os.getenv("AZURE_ENDPOINT")
-    deployment = os.getenv("AZURE_DEPLOYMENT")
-    api_key = os.getenv("AZURE_API_KEY")
+    endpoint = os.getenv("AZURE_ENDPOINT") or os.getenv("PROJECT_ENDPOINT")
+    deployment = os.getenv("AZURE_DEPLOYMENT") or os.getenv("AZURE_MODEL")
+    api_key = os.getenv("AZURE_API_KEY") or os.getenv("PROJECT_APIKEY")
     if not endpoint or not deployment or not api_key:
         return response(500, {"detail": "The trip planner is not configured in Netlify."})
 
