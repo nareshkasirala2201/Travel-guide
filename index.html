@@ -98,8 +98,10 @@
       sendButton.disabled = true;
       const thinking = addMessage('assistant', 'Thinking...', 'thinking');
       try {
-        const response = await fetch('/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: history }) });
-        const data = await response.json();
+        const response = await fetch('/.netlify/functions/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: history }) });
+        const responseText = await response.text();
+        let data;
+        try { data = JSON.parse(responseText); } catch { throw new Error('The chat service returned an invalid response. Check the Netlify function deployment.'); }
         if (!response.ok) throw new Error(data.detail || 'Something went wrong.');
         thinking.remove();
         history.push({ role: 'assistant', content: data.reply });
